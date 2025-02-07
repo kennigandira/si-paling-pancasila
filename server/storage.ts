@@ -20,6 +20,10 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return message;
   }
+
+  async clearMessages(): Promise<void> {
+    await db.delete(messages);
+  }
 }
 
 export const storage = new DatabaseStorage();

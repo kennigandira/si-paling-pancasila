@@ -16,11 +16,23 @@ export default function ChatWindow() {
     );
   }
 
+  const clearChat = async () => {
+    await fetch("/api/messages", { method: "DELETE" });
+    queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+  };
+
   return (
-    <ScrollArea className="h-[500px] pr-4">
+    <div>
+      <div className="flex justify-end mb-4">
+        <Button onClick={clearChat} variant="destructive" size="sm">
+          Clear Chat
+        </Button>
+      </div>
+      <ScrollArea className="h-[500px] pr-4">
       {messages?.map((message) => (
         <Message key={message.id} message={message} />
       ))}
     </ScrollArea>
+    </div>
   );
 }
