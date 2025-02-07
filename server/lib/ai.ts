@@ -156,7 +156,8 @@ IMPORTANT: Only return the JSON object, no other text before or after.`;
           content: prompt,
         },
       ],
-      temperature: 1,
+      temperature: 0.7,
+      max_tokens: 2000,
     });
 
     const content = response.choices[0].message.content;
@@ -164,15 +165,30 @@ IMPORTANT: Only return the JSON object, no other text before or after.`;
       throw new Error("No response content from OpenAI");
     }
 
-    // Extract JSON from response in case there's any extra text
-    const match = content.match(/\{[\s\S]*\}/);
-    const jsonContent = match ? match[0] : content;
+    try {
+      // Extract JSON from response
+      const match = content.match(/\{[\s\S]*\}/);
+      if (!match) {
+        throw new Error("Invalid response format from OpenAI");
+      }
 
-    const result = JSON.parse(jsonContent);
-    // Include the original research in the response
-    result.research = research;
+      const jsonContent = match[0];
+      const result = JSON.parse(jsonContent);
 
-    return aiResponseSchema.parse(result);
+      // Ensure proper formatting of response
+      const formattedResult = {
+        analysis: result.analysis || "",
+        pancasilaPrinciples: Array.isArray(result.pancasilaPrinciples) ? result.pancasilaPrinciples : [],
+        constitutionalReferences: Array.isArray(result.constitutionalReferences) ? result.constitutionalReferences : [],
+        recommendation: result.recommendation || "",
+        research: research // Include the original research
+      };
+
+      return aiResponseSchema.parse(formattedResult);
+    } catch (parseError) {
+      console.error("Response parsing error:", parseError);
+      throw new Error("Failed to format AI response");
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(`Analysis failed: ${error.message}`);
