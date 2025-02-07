@@ -75,11 +75,19 @@ Remember:
       throw new Error("No response content from Perplexity");
     }
 
-    // Extract JSON from response
-    const match = content.match(/\{[\s\S]*\}/);
-    const jsonContent = match ? match[0] : content;
-    const result = JSON.parse(jsonContent);
-    return researchResponseSchema.parse(result);
+    try {
+      // Extract JSON from response
+      const match = content.match(/\{[\s\S]*\}/);
+      if (!match) {
+        throw new Error("No valid JSON found in response");
+      }
+      const jsonContent = match[0].trim();
+      const result = JSON.parse(jsonContent);
+      return researchResponseSchema.parse(result);
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      throw new Error("Failed to parse research response");
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(`Research gathering failed: ${error.message}`);
