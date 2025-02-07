@@ -1,13 +1,12 @@
 import OpenAI from "openai";
 import { aiResponseSchema, type AIResponse } from "@shared/schema";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function analyzeRegulation(text: string): Promise<AIResponse> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
