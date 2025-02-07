@@ -24,7 +24,9 @@ export const researchResponseSchema = z.object({
 
 export const aiResponseSchema = z.object({
   analysis: z.string(),
-  pancasilaPrinciples: z.array(z.string()),
+  pancasilaPrinciples: z.array(z.string()).or(z.array(z.record(z.any()))).transform(principles => 
+    principles.map(p => typeof p === 'string' ? p : JSON.stringify(p))
+  ),
   constitutionalReferences: z.array(z.string()),
   recommendation: z.string(),
   // Add research data to the response
