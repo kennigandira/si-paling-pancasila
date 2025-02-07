@@ -83,28 +83,28 @@ Remember:
 
 async function openAIAnalysis(research: ResearchResponse, originalText: string): Promise<AIResponse> {
   try {
-    const response = await openai.chat.completions.create({
-      model: "o1-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert in Indonesian constitutional law and Pancasila principles. Your task is to analyze regulations based on provided research data and return ONLY a JSON object. DO NOT include any text outside the JSON.
+    const prompt = `You are an expert in Indonesian constitutional law and Pancasila principles. Analyze the following topic and research data through the lens of Pancasila principles.
+
+Topic: ${originalText}
 
 Research Data:
 ${JSON.stringify(research, null, 2)}
 
-Required JSON format:
+Return your analysis ONLY as a JSON object in this exact format (no other text):
 {
   "analysis": "detailed analysis of the regulation/event through Pancasila lens",
   "pancasilaPrinciples": ["relevant principles with analysis"],
   "constitutionalReferences": ["relevant UUD 1945 articles"],
   "recommendation": "recommendations based on analysis",
   "research": [provided research data]
-}`
-        },
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: "o1-mini",
+      messages: [
         {
           role: "user",
-          content: `Please analyze this topic critically: ${originalText}`
+          content: prompt
         }
       ],
       response_format: { type: "json_object" },
