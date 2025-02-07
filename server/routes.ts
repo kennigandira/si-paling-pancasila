@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { analyzeRegulation } from "./lib/openai";
+import { analyzeRegulation } from "./lib/ai";
 import { insertMessageSchema } from "@shared/schema";
 
 export function registerRoutes(app: Express): Server {
