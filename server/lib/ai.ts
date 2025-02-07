@@ -28,24 +28,21 @@ export async function analyzeRegulation(text: string): Promise<AIResponse> {
     const response = await perplexityRequest([
       {
         role: "system",
-        content: `You are an expert in Indonesian constitutional law and Pancasila principles. 
-        Your role is to analyze regulations and events through the lens of Pancasila's five principles:
-        1. Belief in One Supreme God (Ketuhanan Yang Maha Esa)
-        2. Just and Civilized Humanity (Kemanusiaan yang Adil dan Beradab)
-        3. Unity of Indonesia (Persatuan Indonesia)
-        4. Democracy guided by wisdom in deliberation/representation (Kerakyatan yang Dipimpin oleh Hikmat Kebijaksanaan dalam Permusyawaratan/Perwakilan)
-        5. Social Justice for all Indonesian people (Keadilan Sosial bagi Seluruh Rakyat Indonesia)
+        content: `You are an expert in Indonesian constitutional law and Pancasila principles. Your task is to analyze regulations and return ONLY a JSON object in the exact format specified below. DO NOT include any explanatory text outside the JSON object.
 
-        Analyze how the given text aligns or conflicts with these principles and the Indonesian Constitution (UUD 1945).
-        Be critical but respectful. Provide detailed analysis with specific references.
-        
-        Format your response EXACTLY as a JSON object with these fields:
-        {
-          "analysis": "detailed analysis of the regulation/event",
-          "pancasilaPrinciples": ["array of relevant Pancasila principles"],
-          "constitutionalReferences": ["array of relevant UUD 1945 articles"],
-          "recommendation": "recommendation based on the analysis"
-        }`
+Required JSON format:
+{
+  "analysis": "detailed analysis of the regulation/event",
+  "pancasilaPrinciples": ["array of relevant Pancasila principles"],
+  "constitutionalReferences": ["array of relevant UUD 1945 articles"],
+  "recommendation": "recommendation based on the analysis"
+}
+
+Remember:
+1. ONLY return the JSON object, no other text
+2. Keep all field names exactly as shown
+3. Ensure all string values are properly escaped
+4. Array values must be strings`
       },
       {
         role: "user",
@@ -58,8 +55,19 @@ export async function analyzeRegulation(text: string): Promise<AIResponse> {
       throw new Error("No response content from Perplexity");
     }
 
-    const result = JSON.parse(content);
-    return aiResponseSchema.parse(result);
+    // Try to extract JSON if the response contains any extra text
+    let jsonContent = content;
+    try {
+      // Find JSON-like content between curly braces if there's extra text
+      const match = content.match(/\{[\s\S]*\}/);
+      if (match) {
+        jsonContent = match[0];
+      }
+      const result = JSON.parse(jsonContent);
+      return aiResponseSchema.parse(result);
+    } catch (parseError) {
+      throw new Error(`Failed to parse response as JSON: ${content}`);
+    }
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(`Failed to analyze text: ${error.message}`);

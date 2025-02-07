@@ -23,7 +23,9 @@ export default function ChatInput() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message
+        description: error.message,
+        // Make the toast content selectable
+        className: "select-text"
       });
     }
   });
@@ -34,18 +36,28 @@ export default function ChatInput() {
     mutation.mutate(input);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim()) {
+        handleSubmit(e);
+      }
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="mt-4">
       <div className="flex gap-2">
         <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about Indonesian regulations or events..."
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about Indonesian regulations or events... (Press Enter to send, Shift+Enter for new line)"
           className="resize-none"
         />
         <Button 
           type="submit" 
-          disabled={mutation.isPending} 
+          disabled={mutation.isPending || !input.trim()} 
           className="bg-primary hover:bg-primary/90"
         >
           <Send className="h-4 w-4" />
