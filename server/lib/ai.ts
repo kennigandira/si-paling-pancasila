@@ -157,7 +157,7 @@ IMPORTANT: Only return the JSON object, no other text before or after.`;
         },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
     });
 
     const content = response.choices[0].message.content;
