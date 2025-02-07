@@ -1,4 +1,7 @@
 import { aiResponseSchema, researchResponseSchema, type AIResponse, type ResearchResponse } from "@shared/schema";
+import OpenAI from "openai";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function perplexityRequest(messages: Array<{ role: string; content: string }>) {
   const response = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -78,78 +81,51 @@ Remember:
   }
 }
 
-async function deepseekAnalysis(research: ResearchResponse, originalText: string): Promise<AIResponse> {
+async function openAIAnalysis(research: ResearchResponse, originalText: string): Promise<AIResponse> {
   try {
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: `You are a highly critical Indonesian constitutional law expert with deep understanding of Pancasila principles. Your task is to provide an extremely thorough and critical analysis of regulations based on provided research data.
-
-Given the following research references, analyze through Pancasila principles and constitutional framework. Be extremely critical, highlight potential issues, conflicts, and implications.
+    const response = await openai.chat.completions.create({
+      model: "o1-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert in Indonesian constitutional law and Pancasila principles. Your task is to analyze regulations based on provided research data and return ONLY a JSON object. DO NOT include any text outside the JSON.
 
 Research Data:
 ${JSON.stringify(research, null, 2)}
 
-Return ONLY a JSON object in this format:
+Required JSON format:
 {
-  "analysis": "extremely detailed critical analysis",
-  "pancasilaPrinciples": ["relevant principles with critical examination"],
-  "constitutionalReferences": ["relevant articles with critical context"],
-  "recommendation": "thorough recommendations based on critical analysis",
+  "analysis": "detailed analysis of the regulation/event through Pancasila lens",
+  "pancasilaPrinciples": ["relevant principles with analysis"],
+  "constitutionalReferences": ["relevant UUD 1945 articles"],
+  "recommendation": "recommendations based on analysis",
   "research": [provided research data]
-}
-
-Remember:
-1. Be deeply analytical and critical
-2. Question assumptions and implications
-3. Consider societal impact
-4. Highlight potential conflicts
-5. Suggest concrete improvements`
-          },
-          {
-            role: "user",
-            content: `Please provide a critical analysis of this topic: ${originalText}`
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.2
-      })
+}`
+        },
+        {
+          role: "user",
+          content: `Please analyze this topic critically: ${originalText}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.2
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Deepseek API error: ${error}`);
-    }
-
-    const result = await response.json();
-    const content = result.choices[0].message.content;
-
+    const content = response.choices[0].message.content;
     if (!content) {
-      throw new Error("No response content from Deepseek");
+      throw new Error("No response content from OpenAI");
     }
 
-    // Extract JSON from response
-    const match = content.match(/\{[\s\S]*\}/);
-    const jsonContent = match ? match[0] : content;
-
-    const parsedResult = JSON.parse(jsonContent);
+    const result = JSON.parse(content);
     // Include the original research in the response
-    parsedResult.research = research;
+    result.research = research;
 
-    return aiResponseSchema.parse(parsedResult);
+    return aiResponseSchema.parse(result);
   } catch (error: unknown) {
     if (error instanceof Error) {
-      throw new Error(`Critical analysis failed: ${error.message}`);
+      throw new Error(`Analysis failed: ${error.message}`);
     }
-    throw new Error("Critical analysis failed: Unknown error");
+    throw new Error("Analysis failed: Unknown error");
   }
 }
 
@@ -158,49 +134,8 @@ export async function analyzeRegulation(text: string): Promise<AIResponse> {
     // Step 1: Gather research using Perplexity
     const research = await gatherResearch(text);
 
-    // Step 2: Critical analysis using Deepseek (temporary fallback to Perplexity until Deepseek is ready)
-    let analysis: AIResponse;
-    try {
-      analysis = await deepseekAnalysis(research, text);
-    } catch {
-      // Fallback to Perplexity for analysis until Deepseek is implemented
-      const response = await perplexityRequest([
-        {
-          role: "system",
-          content: `You are an expert in Indonesian constitutional law and Pancasila principles. Your task is to analyze regulations and return ONLY a JSON object in the exact format specified below. DO NOT include any explanatory text outside the JSON object.
-
-Required JSON format:
-{
-  "analysis": "detailed analysis of the regulation/event",
-  "pancasilaPrinciples": ["array of relevant Pancasila principles"],
-  "constitutionalReferences": ["array of relevant UUD 1945 articles"],
-  "recommendation": "recommendation based on the analysis",
-  "research": ${JSON.stringify(research)}
-}
-
-Remember:
-1. ONLY return the JSON object, no other text
-2. Keep all field names exactly as shown
-3. Ensure all string values are properly escaped
-4. Be critical and thorough in your analysis
-5. Use the provided research data`
-        },
-        {
-          role: "user",
-          content: text
-        }
-      ]);
-
-      const content = response.choices[0].message.content;
-      if (!content) {
-        throw new Error("No response content from Perplexity");
-      }
-
-      const match = content.match(/\{[\s\S]*\}/);
-      const jsonContent = match ? match[0] : content;
-      const result = JSON.parse(jsonContent);
-      analysis = aiResponseSchema.parse(result);
-    }
+    // Step 2: Analyze using OpenAI o1-mini
+    const analysis = await openAIAnalysis(research, text);
 
     return analysis;
   } catch (error: unknown) {
