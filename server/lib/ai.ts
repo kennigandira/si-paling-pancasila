@@ -108,7 +108,7 @@ Return your analysis ONLY as a JSON object in this exact format (no other text):
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.2
+      temperature: 1
     });
 
     const content = response.choices[0].message.content;
