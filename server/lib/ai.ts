@@ -97,7 +97,9 @@ Return your analysis ONLY as a JSON object in this exact format (no other text):
   "constitutionalReferences": ["relevant UUD 1945 articles"],
   "recommendation": "recommendations based on analysis",
   "research": [provided research data]
-}`;
+}
+
+IMPORTANT: Only return the JSON object, no other text before or after.`;
 
     const response = await openai.chat.completions.create({
       model: "o1-mini",
@@ -107,7 +109,6 @@ Return your analysis ONLY as a JSON object in this exact format (no other text):
           content: prompt
         }
       ],
-      response_format: { type: "json_object" },
       temperature: 1
     });
 
@@ -116,7 +117,11 @@ Return your analysis ONLY as a JSON object in this exact format (no other text):
       throw new Error("No response content from OpenAI");
     }
 
-    const result = JSON.parse(content);
+    // Extract JSON from response in case there's any extra text
+    const match = content.match(/\{[\s\S]*\}/);
+    const jsonContent = match ? match[0] : content;
+
+    const result = JSON.parse(jsonContent);
     // Include the original research in the response
     result.research = research;
 
