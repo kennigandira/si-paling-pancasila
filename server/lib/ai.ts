@@ -178,10 +178,14 @@ IMPORTANT: Only return the JSON object, no other text before or after.`;
       // Ensure proper formatting of response
       const formattedResult = {
         analysis: result.analysis || "",
-        pancasilaPrinciples: Array.isArray(result.pancasilaPrinciples) ? result.pancasilaPrinciples : [],
-        constitutionalReferences: Array.isArray(result.constitutionalReferences) ? result.constitutionalReferences : [],
+        pancasilaPrinciples: Array.isArray(result.pancasilaPrinciples)
+          ? result.pancasilaPrinciples
+          : [],
+        constitutionalReferences: Array.isArray(result.constitutionalReferences)
+          ? result.constitutionalReferences
+          : [],
         recommendation: result.recommendation || "",
-        research: research // Include the original research
+        research: research, // Include the original research
       };
 
       return aiResponseSchema.parse(formattedResult);
